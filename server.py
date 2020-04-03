@@ -3,6 +3,8 @@ import time
 import traceback
 import abc
 import atexit
+import sqlite3
+
 
 #TODO
 '''
@@ -13,6 +15,10 @@ import atexit
 for now:
     - two clients at the time (receipent and receiver)
     - no crypto (for now)
+
+
+sock = ssl.wrap_socket(sock)
+
 
 '''
 
@@ -34,14 +40,16 @@ class Server(socket.socket):
         try:
             self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #ipv4 tcp
             print(self.server, self.port)
+
             self.s.bind((self.server, self.port))
-            self.s.listen(5)
             print("waiting for connection...")
+            self.s.listen(2)
+
+            self.conn, self.addr = self.s.accept()
 
             # BRAK OBSŁUGI POŁĄCZENIA
-            # po wyjściu z tej funkcji zostanie zerwane, naprawić
+            # po wyjściu z tej funkcji zostanie prawdopodobnie zerwane, naprawić
 
-            self.conn, self.addr = s.accept()
             with self.conn:
                 print('Connection from: ', self.addr)
         except:
@@ -64,16 +72,33 @@ SERVER = '127.0.0.1'
 PORT = 55555 # >1024
 
 if __name__ == "__main__":
-
-    s = Server(SERVER, PORT)
-    
-    s.start()
-
-
-        
     @atexit.register
     def godbye():
         print("\n\n")
         print("cleaning...")
         Server.closeAll(s)
-    #s.sendMsg('', 'TEST MESSAGE')
+        database.close()
+        
+
+    #Creating database in memory
+    database = sqlite3.connect(':memory:')
+
+    c = database.cursor()
+    # Create table
+    c.execute('''CREATE TABLE adresses
+                (userId text, ipAdress text, port text)''')
+
+    # Save (commit) the changes
+    database.commit()
+    
+    #Starting server
+    s = Server(SERVER, PORT)
+    s.start()
+    
+    data = ('test1', s.addr[0], s.addr[1])
+
+    c.execute(f"INSERT INTO adresses VALUES {data}")
+    database.commit()
+
+    c.execute('SELECT * FROM adresses')
+    print(c.fetchone())
