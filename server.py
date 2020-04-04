@@ -4,7 +4,7 @@ import traceback
 import abc
 import atexit
 import sqlite3
-
+import json
 
 #TODO
 '''
@@ -42,7 +42,7 @@ class Server(socket.socket):
             print(self.server, self.port)
 
             self.s.bind((self.server, self.port))
-            print("waiting for connection...")
+            print("[|] waiting for connection...")
             self.s.listen(2)
 
             self.conn, self.addr = self.s.accept()
@@ -50,18 +50,41 @@ class Server(socket.socket):
             # BRAK OBSŁUGI POŁĄCZENIA
             # po wyjściu z tej funkcji zostanie prawdopodobnie zerwane, naprawić
 
-            with self.conn:
-                print('Connection from: ', self.addr)
+            print('Connection from: ', self.addr)
         except:
             print("++++++++++++++++++++++++++++++++++++++++++++++++++")
             print(traceback.print_exc())
 
 
-    def sendMsg(self, receipent:str, msg:str):
+    def sendMsg(self, msg:str):
         if len(msg) >= (10 * self.HEADER_SIZE):
-            raise Exception
+            print('message is to big!')
+            return
         msg = f"{len(msg):<{self.HEADER_SIZE}}" + msg
-        self.s.sendall(bytes(msg, "utf-8"))
+        self.conn.send(bytes(msg, "utf-8"))
+
+    def recvMsg(self):
+        while True:
+            fullMsg = ''
+            newMsg = True
+            while True:
+                msg = self.conn.recv(self.HEADER_SIZE * 2) #ALLWAYS HAS TO BE GRATER THAN HEADER
+                if newMsg:
+                    #print("new msg len:",msg[:self.HEADER_SIZE])
+                    msgLen = int(msg[:self.HEADER_SIZE])
+                    newMsg = False
+
+                fullMsg += msg.decode("utf-8")
+                #print(f"full message length: {len(fullMsg)}")
+
+                if len(fullMsg) - self.HEADER_SIZE == msgLen:
+                    #print(fullMsg[self.HEADER_SIZE:])
+                    newMsg = False
+                    break
+            #Removing header
+            fullMsg = fullMsg[self.HEADER_SIZE:]
+            return fullMsg
+
 
     @staticmethod
     def closeAll(self):
@@ -72,13 +95,6 @@ SERVER = '127.0.0.1'
 PORT = 55555 # >1024
 
 if __name__ == "__main__":
-    @atexit.register
-    def godbye():
-        print("\n\n")
-        print("cleaning...")
-        Server.closeAll(s)
-        database.close()
-        
 
     #Creating database in memory
     database = sqlite3.connect(':memory:')
@@ -92,13 +108,26 @@ if __name__ == "__main__":
     database.commit()
     
     #Starting server
-    s = Server(SERVER, PORT)
-    s.start()
+    server = Server(SERVER, PORT)
+    server.start()
+
+
+    #Information exchange:
+
+    testMessage = server.recvMsg()
+    testMessage = json.loads(testMessage)
     
-    data = ('test1', s.addr[0], s.addr[1])
+    data = (testMessage['userID'], server.addr[0], server.addr[1])
 
     c.execute(f"INSERT INTO adresses VALUES {data}")
     database.commit()
 
     c.execute('SELECT * FROM adresses')
     print(c.fetchone())
+
+    @atexit.register
+    def godbye():
+        print("\n\n")
+        print("cleaning...")
+        Server.closeAll(server)
+        database.close()
