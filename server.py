@@ -20,7 +20,7 @@ class Server(socket.socket):
 
     def onNewClient(self, conn, addr):
         while True:
-            print('chuj')
+            print(f'new connection from {addr}')
             testMessage = server.recvMsg()
             testMessage = json.loads(testMessage)
             
