@@ -89,47 +89,4 @@ if __name__ == "__main__":
     print(f'\n[*] Searching for {receipentUserID} ...')
 
     clientSocket.sendMsg(msg)
-    #sending request:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-"""
-    while True:
-        fullMsg = ''
-        new_msg = True
-        while True:
-            msg = clientSocket.recv(16)
-            if new_msg:
-                print("new msg len:", msg[:HEADERSIZE], '\n')
-                msglen = int(msg[:HEADERSIZE])
-                new_msg = False
-
-            print(f"full message length: {msglen}\n")
-
-            fullMsg += msg.decode("utf-8")
-
-            print(len(fullMsg))
-
-            if len(fullMsg) - HEADERSIZE == msglen:
-                print("full msg recvd")
-                print(fullMsg[HEADERSIZE:])
-                new_msg = True
-                break
-            """
-
+    

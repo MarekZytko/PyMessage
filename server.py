@@ -6,25 +6,6 @@ import atexit
 import sqlite3
 import json
 
-#TODO
-'''
-- Check for headersize
-- Create adress table (ID)
-
-
-for now:
-    - two clients at the time (receipent and receiver)
-    - no crypto (for now)
-
-
-sock = ssl.wrap_socket(sock)
-
-
-'''
-
-
-
-
 
 class Server(socket.socket):
     HEADER_SIZE = 10
@@ -44,11 +25,7 @@ class Server(socket.socket):
             self.s.bind((self.server, self.port))
             print("[|] waiting for connection...")
             self.s.listen(2)
-
             self.conn, self.addr = self.s.accept()
-
-            # BRAK OBSŁUGI POŁĄCZENIA
-            # po wyjściu z tej funkcji zostanie prawdopodobnie zerwane, naprawić
 
             print('Connection from: ', self.addr)
         except:
@@ -85,7 +62,6 @@ class Server(socket.socket):
             fullMsg = fullMsg[self.HEADER_SIZE:]
             return fullMsg
 
-
     @staticmethod
     def closeAll(self):
         self.s.close()
@@ -110,7 +86,6 @@ if __name__ == "__main__":
     #Starting server
     server = Server(SERVER, PORT)
     server.start()
-
 
     #Information exchange:
 
