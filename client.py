@@ -40,16 +40,17 @@ class Client(socket.socket):
             except:
                 for i in range(sleepTime,0,-1):
                     sys.stdout.write("\r")
-                    sys.stdout.write("[*] Reconnecting in [{:1d}]...".format(i))
+                    sys.stdout.write("[{}] Reconnecting in [{:1d}]...".format(n, i))
                     sys.stdout.flush()
                     time.sleep(1)
-                n += 1
                 
+                print('')
                 if n == 5:
                     sleepTime = 10
                 if n == 10:
-                    print("Unable to connect to the server")
+                    print("Unable to connect to the server :(")
                     exit()
+                n += 1
                 #print("++++++++++++++++++++++++++++++++++++++++++++++++++")
                 #print(traceback.print_exc())
                 #exit()
@@ -103,11 +104,11 @@ if __name__ == "__main__":
     }
 
     msg = json.dumps(msg)
-    print(msg)
-
-    print(f'\n[*] Searching for {receipentUserID} ...')
-
+    #print(msg)
     clientSocket.sendMsg(msg)
+    print(f'\n[*] Waiting for receipent to connect to the server ...')
+
+
 
     #clear = lambda: os.system('cls') #on Windows System
     #clear()

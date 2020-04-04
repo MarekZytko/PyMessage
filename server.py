@@ -6,6 +6,8 @@ import atexit
 import sqlite3
 import json
 import os
+import _thread
+import threading 
 
 class Server(socket.socket):
     HEADER_SIZE = 10
@@ -15,20 +17,42 @@ class Server(socket.socket):
         self.server = server
         self.port = port
 
+
+    def onNewClient(self, conn, addr):
+        while True:
+            print('chuj')
+            testMessage = server.recvMsg()
+            testMessage = json.loads(testMessage)
+            
+            data = (testMessage['userID'], testMessage['receipentID'],server.addr[0], server.addr[1])
+
+            c.execute(f"INSERT INTO adresses VALUES {data}")
+            database.commit()
+            while True:
+                c.execute("SELECT * FROM adresses")
+                print(c.fetchone())
+                time.sleep(2)
+            conn.close()
+
     def start(self):
         try:
             self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #ipv4 tcp
             print(self.server, self.port)
 
             self.s.bind((self.server, self.port))
-            print("[*] waiting for connection...")
-            self.s.listen(2)
-            self.conn, self.addr = self.s.accept()
+            print("[*] waiting for connections...")
+            self.s.listen(5) 
 
-            print('Connection from: ', self.addr)
+            while True:
+                self.conn, self.addr = self.s.accept()     # Establish connection with client.
+                print('Connection from: ', self.addr)
+                _thread.start_new_thread(self.onNewClient,(self.conn, self.addr))
         except:
             print("++++++++++++++++++++++++++++++++++++++++++++++++++")
             print(traceback.print_exc())
+
+    
+
 
     def sendMsg(self, msg:str):
         if len(msg) >= (10 * self.HEADER_SIZE):
@@ -70,12 +94,12 @@ PORT = 55555 # >1024
 if __name__ == "__main__":
 
     #Creating database in memory
-    database = sqlite3.connect(':memory:')
+    database = sqlite3.connect(':memory:', check_same_thread=False)
 
     c = database.cursor()
     # Create table
     c.execute('''CREATE TABLE adresses
-                (userId text, ipAdress text, port text)''')
+                (userID text, receipentID text, ipAdress text, port text)''')
 
     # Save (commit) the changes
     database.commit()
@@ -85,19 +109,25 @@ if __name__ == "__main__":
     server.start()
 
     #Information exchange:
-    testMessage = server.recvMsg()
-    testMessage = json.loads(testMessage)
-    
-    data = (testMessage['userID'], server.addr[0], server.addr[1])
 
-    c.execute(f"INSERT INTO adresses VALUES {data}")
-    database.commit()
 
-    c.execute('SELECT * FROM adresses')
-    print(c.fetchone())
 
-    #clear = lambda: os.system('cls') #on Windows System
-    #clear()
+    while True:
+        testMessage = server.recvMsg()
+        testMessage = json.loads(testMessage)
+        
+        data = (testMessage['userID'], testMessage['receipentID'],server.addr[0], server.addr[1])
+
+        c.execute(f"INSERT INTO adresses VALUES {data}")
+        database.commit()
+        while True:
+            c.execute("SELECT * FROM adresses")
+            #c.execute('SELECT receipentID FROM adresses')
+            print(c.fetchone())
+            time.sleep(2)
+
+        #clear = lambda: os.system('cls') #on Windows System
+        #clear()
 
     @atexit.register
     def godbye():
