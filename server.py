@@ -5,17 +5,15 @@ import abc
 import atexit
 import sqlite3
 import json
-
+import os
 
 class Server(socket.socket):
     HEADER_SIZE = 10
 
     def __init__(self, server:str, port:int):
-        
         # Parameters init:
         self.server = server
         self.port = port
-
 
     def start(self):
         try:
@@ -23,7 +21,7 @@ class Server(socket.socket):
             print(self.server, self.port)
 
             self.s.bind((self.server, self.port))
-            print("[|] waiting for connection...")
+            print("[*] waiting for connection...")
             self.s.listen(2)
             self.conn, self.addr = self.s.accept()
 
@@ -31,7 +29,6 @@ class Server(socket.socket):
         except:
             print("++++++++++++++++++++++++++++++++++++++++++++++++++")
             print(traceback.print_exc())
-
 
     def sendMsg(self, msg:str):
         if len(msg) >= (10 * self.HEADER_SIZE):
@@ -88,7 +85,6 @@ if __name__ == "__main__":
     server.start()
 
     #Information exchange:
-
     testMessage = server.recvMsg()
     testMessage = json.loads(testMessage)
     
@@ -99,6 +95,9 @@ if __name__ == "__main__":
 
     c.execute('SELECT * FROM adresses')
     print(c.fetchone())
+
+    #clear = lambda: os.system('cls') #on Windows System
+    #clear()
 
     @atexit.register
     def godbye():
