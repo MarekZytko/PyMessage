@@ -32,6 +32,11 @@ class ServerDatabase(object):
             self.c.execute(request, data)
             self.database.commit()
 
+    def delete(self, data, request:str):
+        with lock:
+            self.c.execute(request, data)
+            self.database.commit()
+
     def getRecord(self, data, reqeust:str):
         with lock:
             self.c.execute(reqeust, data)
@@ -175,28 +180,25 @@ class Client(socket.socket):
 
 
     def recvMsg(self):
+        fullMsg = ''
+        newMsg = True
         while True:
-            fullMsg = ''
-            newMsg = True
             msg = self.conn.recv(self.HEADER_SIZE * 2) #ALLWAYS HAS TO BE GRATER THAN HEADER
-            while len(msg):
-                if newMsg:
-                    msgLen = int(msg[:self.HEADER_SIZE])
-                    #print(f"Message arrived! [len: {msgLen}]")
-                    newMsg = False
+            if newMsg:
+                msgLen = int(msg[:self.HEADER_SIZE])
+                #print(f"Message arrived! [len: {msgLen}]")
+                newMsg = False
 
-                fullMsg += msg.decode("utf-8")
-                #print(f"full message length: {len(fullMsg)}")
+            fullMsg += msg.decode("utf-8")
+            #print(f"full message length: {len(fullMsg)}")
 
-                if len(fullMsg) - self.HEADER_SIZE == msgLen:
-                    #print(fullMsg[self.HEADER_SIZE:])
-                    newMsg = False
-                    break
-            #Removing header
-            fullMsg = fullMsg[self.HEADER_SIZE:]
-            print(fullMsg)
-            return fullMsg
-
+            if len(fullMsg) - self.HEADER_SIZE == msgLen:
+                #print(fullMsg[self.HEADER_SIZE:])
+                newMsg = False
+                break
+        #Removing header
+        fullMsg = fullMsg[self.HEADER_SIZE:]
+        return fullMsg
 
 class Chat():
     def __init__(self, sender, receipent):
@@ -223,27 +225,31 @@ class Chat():
         while True:
             messages = self.messages.getRecord((client1.userID,), "SELECT msg FROM messages where userID=?")
             print("gotRecord, ", messages)
-            if messages != None and messages[0]['userID'] == client1.userID:
+            if messages != None:
+                messages = messages[0] #because record returned from database is tuple
                 while True:
                     print("checking if client free")
                     if client2.free:
                         print("client is free!")
-                        client2.sendMsg(messages[0]['msg'])
-                        print("sending message: ", messages[0])
+                        #client2.sendMsg(messages[0]['msg'])
+                        print(messages)
+                        client2.sendMsg(messages)
+                        print("sending message: ", messages)
+                        print("deleting message")
+                        self.messages.delete((messages,), "DELETE FROM messages where msg=?")
                     time.sleep(1)
                     break
             time.sleep(1)
 
-    
+
     def messagesTable(self, client):
         print("messagesTable")
         while True:
-            print("CHUJ 8============================================>")
-            client.free = False
+            #client.free = True
             msg = client.recvMsg()
             print("MESSAGE ARRIVED FROM: ", client.userID)
             msg = json.loads(msg)
-            client.free = True
+            #client.free = False
             msg = (msg['userID'], msg['msg'])
             self.messages.insert(msg, f"INSERT INTO messages VALUES (?,?)")
             time.sleep(1)

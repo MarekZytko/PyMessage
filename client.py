@@ -13,6 +13,7 @@ import traceback
 import threading
 import _thread
 import sqlite3
+import colorama
 
 
 ID = secrets.token_hex(128) #256 chars
@@ -113,12 +114,14 @@ class Database(object):
         return
 
     def insert(self, data, request:str):
-        self.c.execute(request, data)
-        self.database.commit()
+        with lock:
+            self.c.execute(request, data)
+            self.database.commit()
     
     def delete(self, data, request:str):
         with lock:
             self.c.execute(request, data)
+            self.database.commit()
 
     def getRecord(self, data, reqeust:str):
         with lock:
@@ -137,41 +140,35 @@ class Chat():
         self.messages = Database("CREATE TABLE messages (userID text, msg text)")
         print("database created")
 
-        _thread.start_new_thread(self.messagesTable, (self.clientSocket,))
+        _thread.start_new_thread(self.receiveMessages, (self.clientSocket,))
         _thread.start_new_thread(self.startChat, (self.clientSocket,))
 
 
-    def addMessage(self, msg):
+    def addMessageToSend(self, msg):
         self.messages.insert((USER_ID, msg), f"INSERT INTO messages VALUES (?,?)")
 
 
     def startChat(self, client):
         while True:
             messages = self.messages.getRecord((USER_ID,), "SELECT msg FROM messages where userID=?")
-
             if messages != None:
+                messages = messages[0]
                 while True:
-                    print("checking if client free")
                     if client.free:
-                        print("client is free!")
-                        print("sending message")
-                        client.sendMsg(messages[0])
-                        print("deleting message")
-                        self.messages.delete((messages[0],), "DELETE FROM messages where msg=?")
+                        client.sendMsg(messages)
+                        self.messages.delete((messages,), "DELETE FROM messages where msg=?")
                     time.sleep(1)
                     break
             time.sleep(1)
 
     
-    def messagesTable(self, client):
+    def receiveMessages(self, client):
         while True:
-            print(client.userID)
-            client.free = False
             msg = client.recvMsg()
-            msg = json.loads(msg)
-            client.free = True
-            msg = (USER_ID, msg)
-            self.messages.insert(msg, f"INSERT INTO messages VALUES (?,?)")
+            msg = json.dumps(msg)
+            
+            print(colorama.Fore.MAGENTA + msg + colorama.Fore.RESET)
+            
             time.sleep(1)
 
     def clearChat(self):
@@ -180,10 +177,7 @@ class Chat():
 
 
 
-
-
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(description='Simple python communicator.',\
                                     usage='%(prog)s [server] [port]')
 
@@ -228,10 +222,9 @@ if __name__ == "__main__":
 
 
     msg = clientSocket.recvMsg()
-    print('wiadomosc:', msg)
-
     msg = json.loads(msg)
     print(msg)
+
     if msg['server'] == 'chatCreated':
         chat = Chat(clientSocket)
         chat.clearChat()
@@ -240,14 +233,9 @@ if __name__ == "__main__":
     while True:
         msg = input(">")
         msg = str(msg)
-
         msg = {"userID": USER_ID, "msg": msg}
         msg = json.dumps(msg)
-        print(msg)
-        chat.addMessage(msg)
-
-        #msg = clientSocket.recvMsg()
-        #print('>', msg)
+        chat.addMessageToSend(msg)
 
     #clear = lambda: os.system('cls') #on Windows System
     #clear()
