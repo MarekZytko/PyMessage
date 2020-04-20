@@ -15,6 +15,8 @@ import _thread
 import sqlite3
 import colorama
 
+from keyExchange import DiffieHellman
+
 
 ID = secrets.token_hex(128) #256 chars
 USER_ID = secrets.token_hex(5) #10 chars
@@ -53,8 +55,6 @@ class Client(socket.socket):
                     else:
                         sys.stdout.write("                             ")
                         sys.stdout.write("\r[{}] Reconnecting...".format(n))
-                    
-
                     sys.stdout.flush()
                     time.sleep(1)
                 
@@ -150,13 +150,24 @@ class Chat():
 
     def startChat(self, client):
         while True:
-            messages = self.messages.getRecord((USER_ID,), "SELECT msg FROM messages where userID=?")
-            if messages != None:
-                messages = messages[0]
+            msg = self.messages.getRecord((USER_ID,), "SELECT msg FROM messages where userID=?")
+            if msg != None:
+                msg = msg[0]
                 while True:
-                    if client.free:
-                        client.sendMsg(messages)
-                        self.messages.delete((messages,), "DELETE FROM messages where msg=?")
+                    #Generating new pair of keys each time
+                    self.df = DiffieHellman()
+
+                    #TODO
+                    #How to serialize DiffieHellman object not using Pickle?
+
+                    #publicKey = self.df.public_key.public_bytes
+                    #print(publicKey)
+
+
+
+
+                    client.sendMsg(msg)
+                    self.messages.delete((msg,), "DELETE FROM messages where msg=?")
                     time.sleep(1)
                     break
             time.sleep(1)
@@ -165,16 +176,17 @@ class Chat():
     def receiveMessages(self, client):
         while True:
             msg = client.recvMsg()
-            msg = json.dumps(msg)
+            msg = json.loads(msg)
             
-            print(colorama.Fore.MAGENTA + msg + colorama.Fore.RESET)
-            
+            #TODO
+            #Add exception if first sent message is not key exchange protocol
+            #msg['key']
+            print(colorama.Fore.GREEN + msg['msg'] + colorama.Fore.RESET)
             time.sleep(1)
 
     def clearChat(self):
         clear = lambda: os.system('cls') #on Windows System
         clear()
-
 
 
 if __name__ == "__main__":
@@ -212,7 +224,7 @@ if __name__ == "__main__":
         "userID": USER_ID,
         "receipentID": receipentUserID
     }
-
+    
     msg = json.dumps(msg)
     #print(msg)
 
@@ -231,7 +243,7 @@ if __name__ == "__main__":
         print("[*] Chat created !\n")
 
     while True:
-        msg = input(">")
+        msg = input("")
         msg = str(msg)
         msg = {"userID": USER_ID, "msg": msg}
         msg = json.dumps(msg)

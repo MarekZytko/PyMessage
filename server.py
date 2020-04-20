@@ -98,7 +98,7 @@ class Server():
             else:
                 print("receipent does not exist in database")
             while True:
-                time.sleep(1000)
+                time.sleep(1)
 
         #print("thread closed")
         #_thread.exit()
@@ -223,20 +223,21 @@ class Chat():
 
     def startChat(self, client1, client2):
         while True:
-            messages = self.messages.getRecord((client1.userID,), "SELECT msg FROM messages where userID=?")
-            print("gotRecord, ", messages)
-            if messages != None:
-                messages = messages[0] #because record returned from database is tuple
+            msg = self.messages.getRecord((client1.userID,), "SELECT msg FROM messages where userID=?")
+            print("gotRecord, ", msg)
+            if msg != None:
+                msg = msg[0] #because record returned from database is tuple
                 while True:
                     print("checking if client free")
                     if client2.free:
-                        print("client is free!")
-                        #client2.sendMsg(messages[0]['msg'])
-                        print(messages)
-                        client2.sendMsg(messages)
-                        print("sending message: ", messages)
+                        msg = {"msg": msg}
+                        msg = json.dumps(msg)
+                        client2.sendMsg(msg)
+                        print("sending message: ", msg)
                         print("deleting message")
-                        self.messages.delete((messages,), "DELETE FROM messages where msg=?")
+                        msg = json.loads(msg)
+                        msg = msg['msg']
+                        self.messages.delete((msg,), "DELETE FROM messages where msg=?")
                     time.sleep(1)
                     break
             time.sleep(1)
