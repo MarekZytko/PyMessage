@@ -14,19 +14,22 @@ import threading
 import _thread
 import sqlite3
 import colorama
-
-from keyExchange import DiffieHellman
+import functools
+import re
+from keyExchange import KeyExchange, Aes
 
 
 ID = secrets.token_hex(128) #256 chars
 USER_ID = secrets.token_hex(5) #10 chars
+
+INIT_KEY = KeyExchange()
+
 
 lock = threading.Lock()
 
 
 class Client(socket.socket):
     HEADER_SIZE = 10
-
     def __init__(self, server:str, port:int):
         
         # Parameters init:
@@ -155,22 +158,14 @@ class Chat():
                 msg = msg[0]
                 while True:
                     #Generating new pair of keys each time
-                    self.df = DiffieHellman()
-
-                    #TODO
-                    #How to serialize DiffieHellman object not using Pickle?
-
-                    #publicKey = self.df.public_key.public_bytes
-                    #print(publicKey)
-
-
+                    #self.df = DiffieHellman()
 
 
                     client.sendMsg(msg)
                     self.messages.delete((msg,), "DELETE FROM messages where msg=?")
-                    time.sleep(1)
+                    time.sleep(0.2) #było 1
                     break
-            time.sleep(1)
+            time.sleep(0.2) #było 1
 
     
     def receiveMessages(self, client):
@@ -182,20 +177,62 @@ class Chat():
             #Add exception if first sent message is not key exchange protocol
             #msg['key']
             print(colorama.Fore.GREEN + msg['msg'] + colorama.Fore.RESET)
-            time.sleep(1)
+            time.sleep(0.2) #było 1
 
     def clearChat(self):
         clear = lambda: os.system('cls') #on Windows System
         clear()
 
 
+def sendTest():
+    counter = 0
+    sleepTime = 0
+    while True:
+        time.sleep(sleepTime)
+        #msg = input(">")
+        msg = secrets.token_hex(64)
+        msg = str(msg)
+        print(msg)
+        msg = {"userID": USER_ID, "msg": msg}
+        msg = json.dumps(msg)
+        chat.addMessageToSend(msg)
+        print('\n\nsleepTime: ', sleepTime)
+        counter = counter + 1
+        if counter%5 == 0:
+            sleepTime = sleepTime - 0.1
+            counter = 0
+
+
+
+def ipAdressParse(string):
+    regex = '''^(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\.( 
+            25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\.( 
+            25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\.( 
+            25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)'''
+
+    if not re.search(regex, string):
+        raise argparse.ArgumentTypeError("IP adress is invalid.")
+    else:
+        return string
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Simple python communicator.',\
-                                    usage='%(prog)s [server] [port]')
+    parser = argparse.ArgumentParser(description='Simple python communicator.')
 
-    parser.add_argument('server', help='IPv4 server adress')
-    parser.add_argument('port', help='server\'s port')
+    parser.add_argument(
+        'server',
+        help='IPv4 server adress',
+        type=ipAdressParse
+    )
 
+    parser.add_argument(
+        '-p',
+        '--port',
+        required=False,
+        help='server\'s port, default - 55555', 
+        default=55555, 
+        metavar='[1024-65535]'
+    )
+    
     args = parser.parse_args()
 
     SERVER = args.server
@@ -226,28 +263,37 @@ if __name__ == "__main__":
     }
     
     msg = json.dumps(msg)
-    #print(msg)
 
     clientSocket.sendMsg(msg)
     print("\n[*] Request sent")
     print(f'[*] Waiting for receipent to connect to the server ...')
 
-
     msg = clientSocket.recvMsg()
     msg = json.loads(msg)
     print(msg)
+
 
     if msg['server'] == 'chatCreated':
         chat = Chat(clientSocket)
         chat.clearChat()
         print("[*] Chat created !\n")
-
+    sleepTime = 2
+    counter = 0
     while True:
-        msg = input("")
+        time.sleep(sleepTime)
+        #msg = input(">")
+        msg = secrets.token_hex(64)
         msg = str(msg)
+        print(msg)
         msg = {"userID": USER_ID, "msg": msg}
         msg = json.dumps(msg)
         chat.addMessageToSend(msg)
+        print('\n\nsleepTime: ', sleepTime)
+        counter = counter + 1
+        if counter%5 == 0:
+            sleepTime = sleepTime - 0.1
+            counter = 0
+
 
     #clear = lambda: os.system('cls') #on Windows System
     #clear()

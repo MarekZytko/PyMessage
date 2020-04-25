@@ -10,10 +10,11 @@ import _thread
 import threading 
 import math
 import logging
+from keyExchange import KeyExchange
 
 CONNECTIONS = {}
 CHATS = {}
-
+INIT_KEY = KeyExchange()
 lock = threading.Lock()
 
 class ServerDatabase(object):
@@ -82,7 +83,7 @@ class Server():
         while True:
             receipent = self.database.getRecord((receipentID,), 'SELECT receipentID FROM adresses WHERE userID=?')
 
-            #returns client's userID, it means, that receipent want to connect to exactly him   
+            #...returns client's userID, it means, that receipent want to connect to exactly him   
             if receipent != None:
                 if receipent[0] == userID:
                     receipent = receipent[0]
@@ -91,7 +92,7 @@ class Server():
                         #Making chat:
                         #if it does not exist:
                         if f'{userID}:{receipentID}' in CHATS.keys() or f'{receipentID}:{userID}' in CHATS.keys():
-                            print("CZAT ISTNIEJE")
+                            print("CHAT EXISTS")
                         else:
                             CHATS[f'{userID}:{receipentID}'] = Chat(CONNECTIONS[userID], CONNECTIONS[receipentID])
                         break
@@ -238,9 +239,9 @@ class Chat():
                         msg = json.loads(msg)
                         msg = msg['msg']
                         self.messages.delete((msg,), "DELETE FROM messages where msg=?")
-                    time.sleep(1)
+                    time.sleep(0.2)
                     break
-            time.sleep(1)
+            time.sleep(0.2)
 
 
     def messagesTable(self, client):
