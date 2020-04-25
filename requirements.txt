@@ -1,0 +1,8 @@
+cryptography
+threading
+sqlite3
+colorama
+argparse
+secrets
+socket
+json
