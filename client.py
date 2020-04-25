@@ -277,22 +277,22 @@ if __name__ == "__main__":
         chat = Chat(clientSocket)
         chat.clearChat()
         print("[*] Chat created !\n")
-    sleepTime = 2
-    counter = 0
+    #sleepTime = 2
+    #counter = 0
     while True:
-        time.sleep(sleepTime)
-        #msg = input(">")
-        msg = secrets.token_hex(64)
+        #time.sleep(sleepTime)
+        msg = input(">")
+        #msg = secrets.token_hex(64)
         msg = str(msg)
-        print(msg)
+        #print(msg)
         msg = {"userID": USER_ID, "msg": msg}
         msg = json.dumps(msg)
         chat.addMessageToSend(msg)
-        print('\n\nsleepTime: ', sleepTime)
-        counter = counter + 1
-        if counter%5 == 0:
-            sleepTime = sleepTime - 0.1
-            counter = 0
+        #print('\n\nsleepTime: ', sleepTime)
+        #counter = counter + 1
+        #if counter%5 == 0:
+        #    sleepTime = sleepTime - 0.1
+        #    counter = 0
 
 
     #clear = lambda: os.system('cls') #on Windows System
