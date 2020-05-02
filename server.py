@@ -266,7 +266,7 @@ class Chat():
 
 
 
-SERVER = '127.0.0.1'
+SERVER = '0.0.0.0'
 PORT = 55555 #>1024
 
 if __name__ == "__main__":
